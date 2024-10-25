@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livraria</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;  
+        }
+        .cabecalho {
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+        h3 {
+            font-size: xx-large;
+            margin: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid rgb(133, 133, 133);
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #cacaca;
+        }
+        #aviso {
+            margin-top: 20px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="cabecalho">
+        <h3>Catálogo de livros</h3>
+    </div>
+    <hr>
+    <div class="form">
+        <section>
+            <form id="livros">
+                <div class="conteudo">
+                    <input type="text" id="titleInput" placeholder="Buscar por título" />
+                    <select id="categoriaFiltro">
+                        <option value="">Todas as categorias</option>
+                        <option value="Ficção">Ficção</option>
+                        <option value="Não-ficção">Não-ficção</option>
+                        <option value="Fantasia">Fantasia</option>
+                        <option value="Biografia">Biografia</option>
+                    </select>
+                    <button type="button" onclick="carregarLivrosXML()">Carregar livros XML</button>
+                    <button type="button" onclick="carregarLivrosJSON()">Carregar livros JSON</button>
+                </div>
+            </form>
+        </section>
+    </div>
+    
+    <table id="livrosTabela">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Ano</th>
+                <th>Categoria</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os dados dos livros serão inseridos aqui -->
+        </tbody>
+    </table>
+
+    <div id="aviso"></div>
+    <script>
+async function carregarLivrosXML() {
+    try {
+        const response = await fetch('livros.xml');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, "application/xml");
+
+        const livros = xml.getElementsByTagName('livro');
+        const livrosArray = Array.from(livros).map(livro => {
+            const tituloElement = livro.getElementsByTagName('titulo')[0];
+            const autorElement = livro.getElementsByTagName('autor')[0];
+            const anoElement = livro.getElementsByTagName('ano')[0];
+            const categoriaElement = livro.getElementsByTagName('categoria')[0];
+
+            return {
+                titulo: tituloElement ? tituloElement.textContent : 'Título não disponível',
+                autor: autorElement ? autorElement.textContent : 'Autor não disponível',
+                ano: anoElement ? anoElement.textContent : 'Ano não disponível',
+                categoria: categoriaElement ? categoriaElement.textContent : 'Categoria não disponível',
+            };
+        });
+
+        exibirLivros(livrosArray);
+    } catch (error) {
+        mostrarMensagem('Erro ao carregar dados: ' + error.message);
+    }
+}
+
+
+        async function carregarLivrosJSON() {
+            try {
+                const response = await fetch('livros.json');
+                const livros = await response.json();
+                exibirLivros(livros);
+            } catch (error) {
+                mostrarMensagem('Erro ao carregar dados: ' + error.message);
+            }
+        }
+
+        function exibirLivros(livros) {
+            const tbody = document.querySelector('#livrosTabela tbody');
+            tbody.innerHTML = '';
+            const titleSearch = document.getElementById('titleInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoriaFiltro').value;
+
+            livros = livros.filter(livro => 
+                (livro.titulo.toLowerCase().includes(titleSearch) || titleSearch === '') &&
+                (livro.categoria === categoryFilter || categoryFilter === '')
+            );
+
+            livros.forEach(livro => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${livro.titulo}</td>
+                    <td>${livro.autor}</td>
+                    <td>${livro.ano}</td>
+                    <td>${livro.categoria}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            mostrarMensagem(livros.length > 0 ? 'Livros carregados com sucesso' : 'Nenhum livro encontrado');
+        }
+
+        function mostrarMensagem(mensagem) {
+            const aviso = document.getElementById('aviso');
+            aviso.textContent = mensagem;
+            aviso.style.display = 'block';
+        }
+
+        document.getElementById('titleInput').addEventListener('input', () => {
+            const livros = document.querySelectorAll('#livrosTabela tbody tr');
+            livros.forEach(livro => {
+                const titulo = livro.cells[0].textContent.toLowerCase();
+                const searchValue = document.getElementById('titleInput').value.toLowerCase();
+                livro.style.display = titulo.includes(searchValue) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('categoriaFiltro').addEventListener('change', () => {
+            const livros = document.querySelectorAll('#livrosTabela tbody tr');
+            livros.forEach(livro => {
+                const categoria = livro.cells[3].textContent;
+                const filterValue = document.getElementById('categoriaFiltro').value;
+                livro.style.display = filterValue === '' || categoria === filterValue ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
